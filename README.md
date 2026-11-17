@@ -14,3 +14,4 @@ To use the program also run start.sh this will make sure the container is up to 
 Once started you can use the cmd to naviagte the menu to access things in your library or add more.
 To change the port on your host system you can add a cmd enviroment variable or change the one in start.sh.
 The default serve port is 38273 and should be accessable on localhost.
+To add your own wikis either use the built in zimit wrapper or drop .zim files in the library.
