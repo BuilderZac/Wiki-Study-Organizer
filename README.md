@@ -6,4 +6,11 @@ to most complex to assist with self-teaching. We plan for this project to be com
 wiki format, although we will specifically be focusing on the articles on chessprogramming.org.
 
 ### Install Instructions:
-TBD
+Make sure docker is installed then run start.sh.
+This will install the relevent container & all related packages.
+
+### Usage:
+To use the program also run start.sh this will make sure the container is up to date and launch into it.
+Once started you can use the cmd to naviagte the menu to access things in your library or add more.
+To change the port on your host system you can add a cmd enviroment variable or change the one in start.sh.
+The default serve port is 38273 and should be accessable on localhost.
