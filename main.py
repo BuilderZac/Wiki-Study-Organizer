@@ -70,11 +70,12 @@ def add_to_library():
 
     output_path = LIBRARY_DIR / f"{output_name}.zim"
 
-    # Adjust this command if the installed Zimit version uses different options.
     command = [
         "zimit",
         "--output",
-        str(output_path),
+        str(LIBRARY_DIR),
+        f"--name={output_name}",
+        "--seeds",
         url,
     ]
 
