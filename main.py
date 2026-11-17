@@ -122,26 +122,30 @@ def access_library():
 def zim_menu(zim_file):
     while True:
         print(f"\n=== {zim_file.name} ===")
-        print("1. Serve")
-        print("2. Query")
-        print("3. Cache")
+        print("1. Query")
+        print("2. Cache")
         print("b. Back")
 
         choice = input("\nChoose an option: ").strip().lower()
 
         if choice == "1":
-            serve_zim(zim_file)
-        elif choice == "2":
             readingList.queryAndMakeList()
-        elif choice == "3":
+        elif choice == "2":
             cachePages.createCache()
         elif choice == "b":
             return
         else:
             print("Invalid option.")
 
-def serve_zim(zim_file):
+
+def serve_library():
     global SERVER_PROCESS
+
+    files = zim_files()
+
+    if not files:
+        print("\nThe library is empty.")
+        return
 
     if SERVER_PROCESS is not None and SERVER_PROCESS.poll() is None:
         print("\nA Kiwix server is already running.")
@@ -151,17 +155,19 @@ def serve_zim(zim_file):
         "kiwix-serve",
         "--port",
         str(KIWIX_PORT),
-        str(zim_file),
+        *[str(zim_file) for zim_file in files],
     ]
 
-    print(f"\nStarting {zim_file.name} on port {KIWIX_PORT}.")
+    print(f"\nStarting {len(files)} ZIM file(s) on port {KIWIX_PORT}.")
+    print("Files:")
+    for zim_file in files:
+        print(f"  - {zim_file.name}")
 
     try:
         SERVER_PROCESS = subprocess.Popen(command)
-        print("Kiwix is running in the background.")
-        print("It will remain active until the container is closed.")
+        print("\nKiwix is running in the background.")
+        print(f"Open http://localhost:{KIWIX_PORT}")
         sleep(1.5)
-
     except FileNotFoundError:
         print("kiwix-serve is not installed.")
         SERVER_PROCESS = None
@@ -175,9 +181,10 @@ def __main__():
 
     while True:
         print("\n=== Main Menu ===")
-        print("1. Access library")
-        print("2. Add to library")
-        print("3. Close")
+        print("1. Serve library")
+        print("2. Access library")
+        print("3. Add to library")
+        print("c. Close")
 
         try:
             choice = input("\nChoose an option: ").strip()
@@ -186,10 +193,12 @@ def __main__():
             return
 
         if choice == "1":
-            access_library()
+            serve_library()
         elif choice == "2":
-            add_to_library()
+            access_library()
         elif choice == "3":
+            add_to_library()
+        elif choice == "c":
             print("Closing.")
             return
         else:
