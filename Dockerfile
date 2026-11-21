@@ -49,9 +49,12 @@ RUN if [ -f /app/requirements.txt ]; then \
         -r /app/requirements.txt; \
     fi
 
-RUN mkdir -p /app/library
+RUN mkdir -p /app/library /app/cache
 
-WORKDIR /app/library
+ENV LIBRARY_DIR=/app/library
+ENV CACHE_DIR=/app/cache
+
+WORKDIR /app/
 
 EXPOSE ${KIWIX_PORT}
 
