@@ -57,5 +57,6 @@ EXPOSE ${KIWIX_PORT}
 
 ENTRYPOINT []
 
-CMD ["python3", "/app/main.py"]
+#CMD ["/bin/bash"]
+#CMD ["python3", "/app/main.py"]
 
