@@ -1,35 +1,53 @@
 from pathlib import Path
 from libzim.reader import Archive
 import hashlib
+import re
 
 class Page:
-    def __init__(self, url, name):
+    def __init__(self, url, name, word_count, links):
         self.url: str = url
         self.name: str = name
-        self.links: list = [] # IDs of other pages
-        self.word_count = dict()
+        self.links: list = links
+        self.word_count = word_count
         self.rank = -1 # lower = higher priority
         self.references = [] # IDs of pages that have this page linked
         self.ref_count = 0
 
+        def __str__(self):
+            return f"URL: {self.url}\nNAME: {self.name}\n NUMBER OF OUTBOUND LINKS: {len(self.links)}"
+
+
 class Pages:
     def __init__(self):
-        self.pages = dict()
         self.counter = 0
-        self.hash_url = dict()
-        self.hash_name = dict()
-        self.hash_word = dict()
+        self.word_counter = 0
+        self.pages = dict()             # id : page
+        self.hash_url = dict()          # url : page_id
+        self.hash_name = dict()         # name : page_id
+        self.hash_word_pages = dict()   # word_id : list of pages with that word
+        self.hash_word_dict = dict()    # word : word_id
 
 
-    def insert(self, page: Page):
+    def insert(self, url: str, name: str, word_count: dict, links: list) -> bool:
+        for word in word_count:
+
+            if not self.hash_word_dict.get(word):
+                self.hash_word_dict.update({word: self.word_counter})
+                self.word_counter += 1
+
+            word_id = self.hash_word_dict.get(word)
+
+            if not self.hash_word_pages.get(word_id):
+                self.hash_word_pages.update({word_id: list()})
+
+            word_list = self.hash_word_pages.get(word_id)
+            word_list.append(self.counter)
+            self.hash_word_pages.update({word_id: word_list})
+
+        page = Page(url, name, word_count, links)
         self.pages.update({self.counter: page})
-        self.hash_url.update({page.url: self.counter})
-        self.hash_name.update({page.name: self.counter})
-
-        # To-do: Update word hash map to include page IDs that contain a given word.
-        for word in page.word_count:
-            pass
-        
+        self.hash_url.update({url: self.counter})
+        self.hash_name.update({name: self.counter})
         self.counter += 1
 
 
@@ -73,16 +91,17 @@ def count_words(words: str) -> dict:
 
 
 def format_links(links: list[str]) -> list[str]:
+    newLinks = list()
     for link in links:
         webpage_url = link.find("://")
         if webpage_url != -1:
-            third_slash = link.find("/", webpage_url+3)
+            third_slash = link.find("/", webpage_url+4)
             link = link[third_slash:]
-    return links
+        newLinks.append(link)
+    return newLinks
 
 
 def createCache(zim_path: Path) -> Pages:
-    pass
     pages = Pages()
 
     # Make cache ID
@@ -98,28 +117,25 @@ def createCache(zim_path: Path) -> Pages:
     else:
         zim_file = Archive(zim_path)
 
-        # for debugging
-        print(f"{zim_file.entry_count} entries found")
-
         # Read every HTML page
         for page in zim_file:
             # Omit non-HTML files
             page_content = page.get_item()
+            url = page_content.path
+            name = page_content.title
+
             if page_content.mimetype != "text/html":
                 continue
             else:
                 page_content = bytes(page_content.content).decode("utf-8")
 
-            # Initialize stacks for tags, content, links
-            #tags: list[str] = list()
+            # Variables for storing extracted data
             text: str = ""
             links: list[str] = list()
             cursor = 0
 
             while cursor < len(page_content):
                 char = page_content[cursor]
-
-                # anything between end of open_tag and beginning of close_tag are saved in words
 
                 if char == '<':
                     cursor += 1
@@ -130,8 +146,9 @@ def createCache(zim_path: Path) -> Pages:
                         tag += page_content[cursor]
                         cursor += 1
 
+                    # FILL WITH VALID HTML TAGS
                     valid_tags = ()
-                    if tag in valid_tags:
+                    if tag in valid_tags: # SWAPTO NOT IN
                         continue
 
                     if page_content[cursor] == " ":
@@ -140,25 +157,22 @@ def createCache(zim_path: Path) -> Pages:
                         rest_of_tag = page_content[cursor:end_tag]
                         cursor = end_tag
 
-                        # find href
+                        # Find link/HREF
                         href_start = rest_of_tag.find("href=\"")
-                        href_end = rest_of_tag.find("\"")
                         if href_start != -1:
-                            href_link = rest_of_tag[href_start+5:href_end]
+                            href_end = rest_of_tag.find("\"", href_start+6)
+                            href_link = rest_of_tag[href_start+6:href_end]
                             links.append(href_link)
-
-                    # is open tag
-                    else:
-                        # add to tag stack
-                        #tags.append(tag)
-                        cursor += 1 # skip " "
-
-                        pass
+                else:
+                    text += char
                 cursor += 1
 
             # when collection is complete, format and pass data on
-            count_words(text)
-            newLinks = format_links(links)
+            text = re.sub(r'[^\w\s]', '', text)
+            text = re.sub(r'\n', '', text)
+            pages.insert(url, name, count_words(text), format_links(links))
+        writeCache()
+    return pages
 
 
 def writeCache():
@@ -173,4 +187,3 @@ def main():
     file = "library/finiki_en_all_maxi_2024-06.zim"
     createCache(Path(file))
 
-main()
