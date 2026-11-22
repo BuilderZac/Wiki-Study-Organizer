@@ -18,7 +18,30 @@ def getReadPages(): # return dict of page urls
     pass
 
 def bookmark(page):
-    pass
+    with open("bookmarks.txt", a) as bookmarkFile:
+        bookmarks = bookmarkFile.readlines()
+
+        for bookmark in bookmarks:
+            if bookmark is page.url: return -1
+        
+        print(page.url)
+        return 1
+
+def removeBookmark(page):
+    bookmarkExists = False
+
+    with open("bookmarks.txt", "r") as bookmarkFile:
+        bookmarks = bookmarkFile.readlines()
+
+    with open("bookmarks.txt","w") as bookmarkFile:
+        for bookmark in bookmarks:
+            if bookmark.strip("\n") is page.url:
+                bookmarkExists = True
+            else: 
+                bookmarkFile.write(bookmark)
+
+        return 1
+    
 
 def rank(cache):
     results = sorted(cache.values(), key=lambda x: cache.get(x).ref_count, reverse=True)
