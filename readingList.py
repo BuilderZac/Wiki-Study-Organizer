@@ -12,7 +12,15 @@ def queryAndMakeList():
     return
 
 def getReadPages(): # return dict of page urls
-    pass
+    readdict = dict()
+    
+    with open("finished.txt","r") as readFile:
+        read = readFile.readlines()
+    
+    for i, url in enumerate(read):
+        readdict.update({url: i})
+
+    return readdict
 
 def getBookmarkedPages(): # return dict of page urls
     bookmarkDict = dict()
@@ -24,9 +32,6 @@ def getBookmarkedPages(): # return dict of page urls
         bookmarkDict.update({bookmark: i})
 
     return bookmarkDict
-
-
-
 
 def bookmark(page):
     with open("bookmarks.txt", "a") as bookmarkFile:
