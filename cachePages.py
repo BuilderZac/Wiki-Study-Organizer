@@ -1,5 +1,4 @@
 from pathlib import Path
-import re
 from libzim.reader import Archive
 import hashlib
 
@@ -21,6 +20,7 @@ class Pages:
         self.hash_name = dict()
         self.hash_word = dict()
 
+
     def insert(self, page: Page):
         self.pages.update({self.counter: page})
         self.hash_url.update({page.url: self.counter})
@@ -31,6 +31,7 @@ class Pages:
             pass
         
         self.counter += 1
+
 
     def getPageByName(self, name: str) -> Page:
         id = self.hash_name.get(name)
@@ -61,7 +62,27 @@ class Pages:
         # implement bidirectional breadth-first search
         pass
 
+
+def count_words(words: str) -> dict:
+    word_list = words.split(" ")
+    word_dict = dict()
+    for word in word_list:
+        count = word_dict.get(word, 0)
+        word_dict.update({word:count+1})
+    return word_dict
+
+
+def format_links(links: list[str]) -> list[str]:
+    for link in links:
+        webpage_url = link.find("://")
+        if webpage_url != -1:
+            third_slash = link.find("/", webpage_url+3)
+            link = link[third_slash:]
+    return links
+
+
 def createCache(zim_path: Path) -> Pages:
+    pass
     pages = Pages()
 
     # Make cache ID
@@ -69,66 +90,84 @@ def createCache(zim_path: Path) -> Pages:
         digest = hashlib.file_digest(f, "sha256")
     cache_id = digest.hexdigest()[0:20]
 
-    # To-do: find cache directory
     cache_dir = Path(""+cache_id)
 
     if cache_dir.is_file():
         return readCache(cache_dir)
     
     else:
-        # To-do: read ZIM file
-        # create cache file
-        pages = Pages()
-        print(cache_id)
+        zim_file = Archive(zim_path)
 
-        zim = Archive(zim_path)
-        print(f"Total entries: {zim.entry_count}")
-        for page in zim:
-            if page.is_redirect:
-                page = page.get_redirect_entry()
+        # for debugging
+        print(f"{zim_file.entry_count} entries found")
 
+        # Read every HTML page
+        for page in zim_file:
+            # Omit non-HTML files
             page_content = page.get_item()
-            if page_content.mimetype == ("text/html"):
-                text = bytes(page_content.content).decode("utf-8", errors="replace")
-                print(text)
+            if page_content.mimetype != "text/html":
+                continue
+            else:
+                page_content = bytes(page_content.content).decode("utf-8")
 
-                words = ""
-                while "</" in text:
-                    tag_index = text.find("<")
-                    if tag_index == -1:
-                        break
+            # Initialize stacks for tags, content, links
+            #tags: list[str] = list()
+            text: str = ""
+            links: list[str] = list()
+            cursor = 0
 
-                    tag_end_index = text.find(">", tag_index+1)
-                    if tag_end_index == -1:
-                        break
+            while cursor < len(page_content):
+                char = page_content[cursor]
 
-                    tag = text[tag_index+1:tag_end_index].strip()
-                    print(tag)
+                # anything between end of open_tag and beginning of close_tag are saved in words
 
-                    if (not tag) or (tag.startswith("/")):
-                        text = text[tag_end_index+1:]
+                if char == '<':
+                    cursor += 1
+
+                    # read word until ' '
+                    tag = ""
+                    while (page_content[cursor] != " ") and (page_content[cursor] != ">"):
+                        tag += page_content[cursor]
+                        cursor += 1
+
+                    valid_tags = ()
+                    if tag in valid_tags:
                         continue
 
-                    tag_name = tag.split(None, 1)[0].lower().rstrip("/")
-                    end_tag = f"</{tag_name}>"
+                    if page_content[cursor] == " ":
+                        # continue to end of tag
+                        end_tag = page_content.find('>', cursor)
+                        rest_of_tag = page_content[cursor:end_tag]
+                        cursor = end_tag
 
-                    end_index = text.find(end_tag, tag_end_index + 1)
-                    if end_index == -1:
-                        text = text[tag_end_index + 1:]
-                        continue
+                        # find href
+                        href_start = rest_of_tag.find("href=\"")
+                        href_end = rest_of_tag.find("\"")
+                        if href_start != -1:
+                            href_link = rest_of_tag[href_start+5:href_end]
+                            links.append(href_link)
 
-                    words = text[tag_end_index + 1:end_index]
-                    text = text[end_index + len(end_tag):]
-                print(words)
+                    # is open tag
+                    else:
+                        # add to tag stack
+                        #tags.append(tag)
+                        cursor += 1 # skip " "
 
-                # Parse links out of plaintext
+                        pass
+                cursor += 1
 
-                #pattern = "|".join(map(re.escape, tags))
-                #result = re.sub(pattern, " ", text)
-                #print(result)
+            # when collection is complete, format and pass data on
+            count_words(text)
+            newLinks = format_links(links)
+
+
+def writeCache():
+    pass
+
 
 def readCache(cache_path: Path) -> Pages:
     pass
+
 
 def main():
     file = "library/finiki_en_all_maxi_2024-06.zim"
