@@ -9,6 +9,9 @@ class Page:
         self.name: str = name
         self.links: list = [] # IDs of other pages
         self.word_count = dict()
+        self.rank = -1 # lower = higher priority
+        self.references = [] # IDs of pages that have this page linked
+        self.ref_count = 0
 
 class Pages:
     def __init__(self):
