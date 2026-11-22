@@ -11,14 +11,25 @@ def queryAndMakeList():
 
     return
 
-def getBookmarkedPages(): # return dict of page urls
-    pass
-
 def getReadPages(): # return dict of page urls
     pass
 
+def getBookmarkedPages(): # return dict of page urls
+    bookmarkDict = dict()
+    
+    with open("bookmarks.txt","r") as bookmarkFile:
+        bookmarks = bookmarkFile.readlines()
+    
+    for i, bookmark in enumerate(bookmarks):
+        bookmarkDict.update({bookmark: i})
+
+    return bookmarkDict
+
+
+
+
 def bookmark(page):
-    with open("bookmarks.txt", a) as bookmarkFile:
+    with open("bookmarks.txt", "a") as bookmarkFile:
         bookmarks = bookmarkFile.readlines()
 
         for bookmark in bookmarks:
