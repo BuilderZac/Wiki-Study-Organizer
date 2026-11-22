@@ -1,4 +1,7 @@
-#from libzim import reader
+from pathlib import Path
+import re
+from libzim.reader import Archive
+import hashlib
 
 class Page:
     def __init__(self, url, name):
@@ -52,13 +55,80 @@ class Pages:
 
 
     def getDistance(self, pageOne: Page, pageTwo: Page) -> int:
+        # implement bidirectional breadth-first search
         pass
 
-def createCache() -> Pages:
+def createCache(zim_path: Path) -> Pages:
     pages = Pages()
+
+    # Make cache ID
+    with zim_path.open("rb") as f:
+        digest = hashlib.file_digest(f, "sha256")
+    cache_id = digest.hexdigest()[0:20]
+
+    # To-do: find cache directory
+    cache_dir = Path(""+cache_id)
+
+    if cache_dir.is_file():
+        return readCache(cache_dir)
+    
+    else:
+        # To-do: read ZIM file
+        # create cache file
+        pages = Pages()
+        print(cache_id)
+
+        zim = Archive(zim_path)
+        print(f"Total entries: {zim.entry_count}")
+        for page in zim:
+            if page.is_redirect:
+                page = page.get_redirect_entry()
+
+            page_content = page.get_item()
+            if page_content.mimetype == ("text/html"):
+                text = bytes(page_content.content).decode("utf-8", errors="replace")
+                print(text)
+
+                words = ""
+                while "</" in text:
+                    tag_index = text.find("<")
+                    if tag_index == -1:
+                        break
+
+                    tag_end_index = text.find(">", tag_index+1)
+                    if tag_end_index == -1:
+                        break
+
+                    tag = text[tag_index+1:tag_end_index].strip()
+                    print(tag)
+
+                    if (not tag) or (tag.startswith("/")):
+                        text = text[tag_end_index+1:]
+                        continue
+
+                    tag_name = tag.split(None, 1)[0].lower().rstrip("/")
+                    end_tag = f"</{tag_name}>"
+
+                    end_index = text.find(end_tag, tag_end_index + 1)
+                    if end_index == -1:
+                        text = text[tag_end_index + 1:]
+                        continue
+
+                    words = text[tag_end_index + 1:end_index]
+                    text = text[end_index + len(end_tag):]
+                print(words)
+
+                # Parse links out of plaintext
+
+                #pattern = "|".join(map(re.escape, tags))
+                #result = re.sub(pattern, " ", text)
+                #print(result)
+
+def readCache(cache_path: Path) -> Pages:
     pass
 
+def main():
+    file = "library/finiki_en_all_maxi_2024-06.zim"
+    createCache(Path(file))
 
-def readCache() -> Pages:
-    pass
-
+main()
