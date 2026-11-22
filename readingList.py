@@ -12,52 +12,58 @@ def queryAndMakeList():
     return
 
 def getReadPages(): # return dict of page urls
-    readdict = dict()
-    
-    with open("finished.txt","r") as readFile:
-        read = readFile.readlines()
-    
-    for i, url in enumerate(read):
-        readdict.update({url: i})
-
-    return readdict
+    return readEntries("finished.txt")
 
 def getBookmarkedPages(): # return dict of page urls
-    bookmarkDict = dict()
-    
-    with open("bookmarks.txt","r") as bookmarkFile:
-        bookmarks = bookmarkFile.readlines()
-    
-    for i, bookmark in enumerate(bookmarks):
-        bookmarkDict.update({bookmark: i})
+    return readEntries("bookmarks.txt")
 
-    return bookmarkDict
+def addRead(page):
+    return addEntry(page, "finished.txt")
+
+def removeRead(page):
+    return removeEntry(page, "finished.txt")
 
 def bookmark(page):
-    with open("bookmarks.txt", "a") as bookmarkFile:
-        bookmarks = bookmarkFile.readlines()
+    return addEntry(page, "bookmarks.txt")
 
-        for bookmark in bookmarks:
-            if bookmark is page.url: return -1
+def removeBookmark(page):
+    return removeEntry(page, "bookmarks.txt")
+
+def readEntries(file):
+    outputDict = dict()
+    
+    with open(file,"r") as targetFile:
+        lines = targetFile.readlines()
+    
+    for i, line in enumerate(lines):
+        outputDict.update({line.strip("\n"): i})
+
+    return outputDict
+
+def addEntry(page, file):
+    with open(file, "a") as targetFile:
+        lines = targetFile.readlines()
+
+        for line in lines:
+            if line.strip("\n") is page.url: return -1
         
         print(page.url)
         return 1
 
-def removeBookmark(page):
-    bookmarkExists = False
+def removeEntry(page, file):
+    targetExists = False
 
-    with open("bookmarks.txt", "r") as bookmarkFile:
-        bookmarks = bookmarkFile.readlines()
+    with open(file, "r") as targetFile:
+        lines = targetFile.readlines()
 
-    with open("bookmarks.txt","w") as bookmarkFile:
-        for bookmark in bookmarks:
-            if bookmark.strip("\n") is page.url:
-                bookmarkExists = True
+    with open(file,"w") as targetFile:
+        for line in lines:
+            if line.strip("\n") is page.url:
+                targetExists = True
             else: 
-                bookmarkFile.write(bookmark)
-
-        return 1
-    
+                targetFile.write(line)
+        if targetExists: return 1
+        else: return -1
 
 def rank(cache):
     results = sorted(cache.values(), key=lambda x: cache.get(x).ref_count, reverse=True)
