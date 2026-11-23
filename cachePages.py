@@ -123,91 +123,69 @@ def createCache(zim_path: Path) -> Pages:
         digest = hashlib.file_digest(f, "sha256")
     cache_id = digest.hexdigest()[0:20]
 
-    if False: #Path(str(CACHE_DIR)+"/"+cache_id).is_file():
-        return readCache(CACHE_DIR, cache_id)
+    zim_file = Archive(zim_path)
 
-    # Cache doesn't exist; make data structure, then save it.
-    else:
-        zim_file = Archive(zim_path)
+    # Read every HTML page
+    for page in zim_file:
+        page_content = page.get_item()
+        url = page_content.path
+        name = page_content.title
 
-        # Read every HTML page
-        for page in zim_file:
-            page_content = page.get_item()
-            url = page_content.path
-            name = page_content.title
-
-            # Omit non-HTML files
-            if page_content.mimetype not in ("text/html", "text/plain", "text/plain;charset=UTF-8"):
+        # Omit non-HTML files
+        if page_content.mimetype not in ("text/html", "text/plain", "text/plain;charset=UTF-8"):
+            continue
+        else:
+            # Fix for skipping YouTube videos
+            if "/embed/" in url:
                 continue
-            else:
-                # Fix for skipping YouTube videos
-                if "/embed/" in url:
-                    continue
-                page_content = bytes(page_content.content).decode("utf-8", errors="replace")
+            page_content = bytes(page_content.content).decode("utf-8", errors="replace")
 
-            # Variables for storing extracted data
-            text: str = ""
-            links: list[str] = list()
-            cursor = 0
+        # Variables for storing extracted data
+        text: str = ""
+        links: list[str] = list()
+        cursor = 0
 
-            # Scan through each character
-            while cursor < len(page_content):
-                char = page_content[cursor]
+        # Scan through each character
+        while cursor < len(page_content):
+            char = page_content[cursor]
 
-                # A tag is (possibly) found
-                if char == '<':
-                    cursor += 1
-
-                    # read word until ' '
-                    tag = ""
-                    while (page_content[cursor] != " ") and (page_content[cursor] != ">"):
-                        tag += page_content[cursor]
-                        cursor += 1
-
-                    # Compares possible tag with valid tags; ignore if it's not valid
-                    valid_tags = () # FILL WITH VALID HTML TAGS
-                    if tag in valid_tags: # SWAP TO 'NOT IN'
-                        continue
-
-                    if page_content[cursor] == " ":
-                        # continue to end of tag
-                        end_tag = page_content.find('>', cursor)
-                        rest_of_tag = page_content[cursor:end_tag]
-                        cursor = end_tag
-
-                        # Find link/HREF
-                        href_start = rest_of_tag.find("href=\"")
-                        if href_start != -1:
-                            href_end = rest_of_tag.find("\"", href_start+6)
-                            href_link = rest_of_tag[href_start+6:href_end]
-                            links.append(href_link)
-                else:
-                    text += char
+            # A tag is (possibly) found
+            if char == '<':
                 cursor += 1
 
-            # when collection is complete, format and pass data on
-            text = re.sub(r'[^\w\s]', '', text)
-            text = re.sub(r'\n', '', text)
-            pages.insert(url, name, count_words(text), format_links(links))
+                # read word until ' '
+                tag = ""
+                while (page_content[cursor] != " ") and (page_content[cursor] != ">"):
+                    tag += page_content[cursor]
+                    cursor += 1
 
-        #writeCache(pages, CACHE_DIR, cache_id)
+                # Compares possible tag with valid tags; ignore if it's not valid
+                valid_tags = () # FILL WITH VALID HTML TAGS
+                if tag in valid_tags: # SWAP TO 'NOT IN'
+                    continue
+
+                if page_content[cursor] == " ":
+                    # continue to end of tag
+                    end_tag = page_content.find('>', cursor)
+                    rest_of_tag = page_content[cursor:end_tag]
+                    cursor = end_tag
+
+                    # Find link/HREF
+                    href_start = rest_of_tag.find("href=\"")
+                    if href_start != -1:
+                        href_end = rest_of_tag.find("\"", href_start+6)
+                        href_link = rest_of_tag[href_start+6:href_end]
+                        links.append(href_link)
+            else:
+                text += char
+            cursor += 1
+
+        # when collection is complete, format and pass data on
+        text = re.sub(r'[^\w\s]', '', text)
+        text = re.sub(r'\n', '', text)
+        pages.insert(url, name, count_words(text), format_links(links))
+
     return pages
-
-
-def writeCache(pages: Pages, cache_path: Path, cache_id: str) -> bool:
-    print("HI")
-    with Path(str(CACHE_DIR)+"/"+cache_id).open("w", encoding="utf-8") as file:
-        print("ok")
-        for page in pages.pages:
-            attributes = page.keys
-            print(attributes)
-            for a in attributes:
-                value = attributes.get(a)
-                file.write("Hello, world!\n")
-
-
-def readCache(cache_path: Path, cache_id: str) -> Pages:
-    pass
 
 
 # For debugging
