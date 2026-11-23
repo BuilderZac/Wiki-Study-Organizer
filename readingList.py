@@ -11,7 +11,10 @@ def queryAndMakeList(zim_file):
 
     return
 
-def list_menu(zim_file):
+def list_menu(zim_file, orderedKeys, output_length):
+    pageNum = 1
+    maxPages = 1 + len(orderedKeys)//output_length
+
     while True:
         print(f"\n=== {zim_file.name} ===")
         print("1. Bookmark/Unbookmark")
@@ -19,6 +22,10 @@ def list_menu(zim_file):
         print("3. Next Page")
         print("4. Previous Page")
         print("b. Back")
+
+        for n in range(min(len(orderedKeys) - (output_length*(pageNum-1)), output_length)):
+            print(f"{n}. {orderedKeys[(output_length*(pageNum-1)) + n]}")
+        print(f"=== {pageNum}/{maxPages} ===")
 
         choice = input("\nChoose an option: ").strip().lower()
 
@@ -29,19 +36,19 @@ def list_menu(zim_file):
             choice2 = input("\nPlease provide URL to mark as read: ").strip()
             finishedPage(choice2)
         elif choice == "3":
-            nextPage()
+            if pageNum == maxPages:
+                print("No next page.")
+            else:
+                pageNum += 1
         elif choice == "4":
-            prevPage()
+            if pageNum == 1:
+                print("No previous page.")
+            else:
+                pageNum -= 1
         elif choice == "b":
             return
         else:
             print("Invalid option.")
-
-def nextPage():
-    pass
-
-def prevPage():
-    pass
 
 def getReadPages(): # return dict of page urls
     return readEntries("finished.txt")
