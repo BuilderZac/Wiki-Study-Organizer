@@ -3,12 +3,12 @@ import os
 def queryAndMakeList(zim_file):
     # Variables that will prob be customizable later
     output_length = 10
-    output_page_number = 1
 
     # List setup
     cache = createCache()
     orderedKeys = rank(cache.keys())
 
+    list_menu(zim_file, orderedKeys, output_length)
     return
 
 def list_menu(zim_file, orderedKeys, output_length):

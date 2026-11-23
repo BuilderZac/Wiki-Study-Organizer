@@ -130,7 +130,7 @@ def zim_menu(zim_file):
         choice = input("\nChoose an option: ").strip().lower()
 
         if choice == "1":
-            readingList.queryAndMakeList()
+            readingList.queryAndMakeList(zim_file)
         elif choice == "2":
             cachePages.createCache()
         elif choice == "b":
