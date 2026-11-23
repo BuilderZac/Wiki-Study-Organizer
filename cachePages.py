@@ -21,8 +21,8 @@ class Page:
 
 class Pages:
     def __init__(self):
-        self.counter = 0
-        self.word_counter = 0
+        self.counter = 1
+        self.word_counter = 1
         self.pages = dict()             # id : page
         self.hash_url = dict()          # url : page_id
         self.hash_name = dict()         # name : page_id
@@ -140,6 +140,9 @@ def createCache(zim_path: Path) -> Pages:
             if page_content.mimetype not in ("text/html", "text/plain", "text/plain;charset=UTF-8"):
                 continue
             else:
+                # Fix for skipping YouTube videos
+                if "/embed/" in url:
+                    continue
                 page_content = bytes(page_content.content).decode("utf-8", errors="replace")
 
             # Variables for storing extracted data
