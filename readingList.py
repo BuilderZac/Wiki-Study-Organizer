@@ -16,44 +16,92 @@ def queryAndMakeList(zim_file):
 def list_menu(zim_file, orderedKeys, output_length):
     pageNum = 1
     maxPages = 1 + len(orderedKeys)//output_length
+    currentDisplay = "pages"
+    bookmarkedPages = []
+    readPages = []
 
     while True:
         print(f"\n=== {zim_file.name} ===")
-        print("1. Bookmark/Unbookmark")
-        print("2. Mark as Read/Unread")
-        print("3. Previous Page")
-        print("4. Next Page")
+        print("1. Previous Page")
+        print("2. Next Page")
+        print("3. View Bookmarks")
+        print("4. View Read History")
+        print("5. Bookmark/Unbookmark")
+        print("6. Mark as Read/Unread")
         print("b. Back")
         print()
-        print("Pages to Read:")
 
-        for n in range(min(len(orderedKeys) - (output_length*(pageNum-1)), output_length)):
-            currentPage = orderedKeys[(output_length*(pageNum-1)) + n]
-            print(f"{n+1+(output_length*(pageNum-1))}. {currentPage.name} -- {currentPage.url}")
-        print(f"====== {pageNum}/{maxPages} ======")
+        if currentDisplay == "pages":
+            print("Pages to Read:")
+            for n in range(min(len(orderedKeys) - (output_length*(pageNum-1)), output_length)):
+                currentPage = orderedKeys[(output_length*(pageNum-1)) + n + 1]
+                print(f"{n+1+(output_length*(pageNum-1))}. {currentPage.name} -- {currentPage.url}")
+            print(f"====== {pageNum}/{maxPages} ======")
+
+        elif currentDisplay == "bookmarks":
+            print("Bookmarks:")
+            for n in range(min(len(bookmarkedPages) - (output_length*(pageNum-1)), output_length)):
+                currentPage = bookmarkedPages[(output_length*(pageNum-1)) + n]
+                print(f"{n+1+(output_length*(pageNum-1))}. {currentPage}")
+            print(f"====== {pageNum}/{maxPages} ======")\
+
+        elif currentDisplay == "finished":
+            print("Read History:")
+            for n in range(min(len(readPages) - (output_length*(pageNum-1)), output_length)):
+                currentPage = readPages[(output_length*(pageNum-1)) + n]
+                print(f"{n+1+(output_length*(pageNum-1))}. {currentPage}")
+            print(f"====== {pageNum}/{maxPages} ======")
+        
 
         choice = input("\nChoose an option: ").strip().lower()
 
         if choice == "1":
-            choice2 = input("\nPlease provide URL to bookmark: ").strip()
-            bookmark(choice2)
-        elif choice == "2":
-            choice2 = input("\nPlease provide URL to mark as read: ").strip()
-            finishedPage(choice2)
-        elif choice == "3":
             if pageNum == 1:
                 print("No previous page.")
+                input("Press any key to continue...")
             else:
                 pageNum -= 1            
-        elif choice == "4":
+        elif choice == "2":
             if pageNum == maxPages:
                 print("No next page.")
+                input("Press any key to continue...")
             else:
                 pageNum += 1
+        elif choice == "3":
+            bookmarkedPages = list(getBookmarkedPages().keys())
+            if (len(bookmarkedPages)) > 0:
+                pageNum = 1
+                maxPages = 1 + len(bookmarkedPages)//output_length
+                currentDisplay = "bookmarks"
+            else:
+                print("No bookmarks to display.")
+                input("Press any key to continue...")
+        elif choice == "4":
+            readPages = list(getReadPages().keys())
+            if len(readPages) > 0:
+                pageNum = 1
+                maxPages = 1 + len(readPages)//output_length
+                currentDisplay = "finished"
+            else:
+                print("No pages read.")
+                input("Press any key to continue...")
+        elif choice == "5" and currentDisplay == "pages":
+            choice2 = input("\nPlease provide page # to bookmark: ").strip()
+            bookmark(orderedKeys[int(choice2)].url)
+        elif choice == "6" and currentDisplay == "pages":
+            choice2 = input("\nPlease provide # to mark as read: ").strip()
+            finishedPage(orderedKeys[int(choice2)].url)
+        
         elif choice == "b":
-            return
+            if currentDisplay == "pages":
+                return
+            else: 
+                currentDisplay = "pages"
+                pageNum = 1
+                maxPages = 1 + len(orderedKeys)//output_length
         else:
             print("Invalid option.")
+            input("Press any key to continue...")
 
 def getReadPages(): # return dict of page urls
     return readEntries("finished.txt")
@@ -87,7 +135,7 @@ def finishedPage(url):
 def bookmark(url):
     bookmarks = getBookmarkedPages()
     for bookmark in bookmarks:
-        if bookmark is url: 
+        if bookmark.strip("\n") is url: 
             if removeBookmark(url) == 1:
                 print("Successfully removed bookmark")
                 return 1
@@ -129,10 +177,10 @@ def addEntry(url, file):
 
             for line in lines:
                 if line.strip("\n") is url: return -1
-        print(url)
+            targetFile.write(url)
     else:
         with open(file, "w") as targetFile:
-            print(url)
+            targetFile.write(url)
     return 1
 
 def removeEntry(url, file):
@@ -153,8 +201,6 @@ def removeEntry(url, file):
         else: return -1
 
 def rank(cache):
-    for x in cache.keys():
-        print(x, cache.get(x))
     tempResults = sorted(cache.keys(), key=lambda x: cache.get(x).ref_count, reverse=True)
     results = []
     for x in tempResults: results.append(cache.get(x))
@@ -168,18 +214,7 @@ def rank(cache):
         else:
             x.rank = i
             i += 1
-    
-    print(results) #TODO: remove, used for debug
-    return results
 
-# TODO: Check if redundant
-def readFile(filename):
-    if not os.path.exists(filename): 
-        print("Error: Cache file not found")
-        return
-    
-    with open(filename, "r") as cache:
-        pages = cache.readlines()
-        return pages
+    return results
 
 
