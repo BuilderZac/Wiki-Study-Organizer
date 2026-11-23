@@ -17,8 +17,8 @@ def list_menu(zim_file, orderedKeys, output_length):
     pageNum = 1
     maxPages = 1 + len(orderedKeys)//output_length
     currentDisplay = "pages"
-    bookmarkedPages = []
-    readPages = []
+    bookmarkedPages = list(getBookmarkedPages().keys())
+    readPages = list(getReadPages().keys())
 
     while True:
         print(f"\n=== {zim_file.name} ===")
@@ -26,30 +26,38 @@ def list_menu(zim_file, orderedKeys, output_length):
         print("2. Next Page")
         print("3. View Bookmarks")
         print("4. View Read History")
-        print("5. Bookmark/Unbookmark")
-        print("6. Mark as Read/Unread")
+        if currentDisplay == "pages":
+            print("5. Bookmark/Unbookmark")
+            print("6. Mark as Read/Unread")
         print("b. Back")
         print()
+
+        blankSkip = 0
 
         if currentDisplay == "pages":
             print("Pages to Read:")
             for n in range(min(len(orderedKeys) - (output_length*(pageNum-1)), output_length)):
                 currentPage = orderedKeys[(output_length*(pageNum-1)) + n + 1]
-                print(f"{n+1+(output_length*(pageNum-1))}. {currentPage.name} -- {currentPage.url}")
+                if currentPage.url not in readPages:
+                    print(f"{n+1+(output_length*(pageNum-1))}. {currentPage.name} -- {currentPage.url}")
             print(f"====== {pageNum}/{maxPages} ======")
 
         elif currentDisplay == "bookmarks":
             print("Bookmarks:")
             for n in range(min(len(bookmarkedPages) - (output_length*(pageNum-1)), output_length)):
                 currentPage = bookmarkedPages[(output_length*(pageNum-1)) + n]
-                print(f"{n+1+(output_length*(pageNum-1))}. {currentPage}")
+                if currentPage != '':
+                    print(f"{n-blankSkip+1+(output_length*(pageNum-1))}. {currentPage}")
+                else: blankSkip += 1
             print(f"====== {pageNum}/{maxPages} ======")\
 
         elif currentDisplay == "finished":
             print("Read History:")
             for n in range(min(len(readPages) - (output_length*(pageNum-1)), output_length)):
                 currentPage = readPages[(output_length*(pageNum-1)) + n]
-                print(f"{n+1+(output_length*(pageNum-1))}. {currentPage}")
+                if currentPage != '':
+                    print(f"{n-blankSkip+1+(output_length*(pageNum-1))}. {currentPage}")
+                else: blankSkip += 1
             print(f"====== {pageNum}/{maxPages} ======")
         
 
@@ -88,9 +96,11 @@ def list_menu(zim_file, orderedKeys, output_length):
         elif choice == "5" and currentDisplay == "pages":
             choice2 = input("\nPlease provide page # to bookmark: ").strip()
             bookmark(orderedKeys[int(choice2)].url)
+            #bookmarkedPages.append(orderedKeys[int(choice2)].url)
         elif choice == "6" and currentDisplay == "pages":
             choice2 = input("\nPlease provide # to mark as read: ").strip()
             finishedPage(orderedKeys[int(choice2)].url)
+            #readPages.append(orderedKeys[int(choice2)].url)
         
         elif choice == "b":
             if currentDisplay == "pages":
@@ -118,7 +128,7 @@ def removeRead(url):
 def finishedPage(url):
     readPages = getReadPages()
     for page in readPages:
-        if page is url: 
+        if page.strip("\n") == url: 
             if removeRead(url) == 1:
                 print("Successfully removed read marker")
                 return 1
@@ -135,7 +145,7 @@ def finishedPage(url):
 def bookmark(url):
     bookmarks = getBookmarkedPages()
     for bookmark in bookmarks:
-        if bookmark.strip("\n") is url: 
+        if bookmark.strip("\n") == url: 
             if removeBookmark(url) == 1:
                 print("Successfully removed bookmark")
                 return 1
@@ -172,15 +182,17 @@ def readEntries(file):
 
 def addEntry(url, file):
     if os.path.exists(file):
-        with open(file, "a") as targetFile:
+        with open(file, "r") as targetFile:
             lines = targetFile.readlines()
-
+        with open(file, "a") as targetFile:
             for line in lines:
                 if line.strip("\n") is url: return -1
             targetFile.write(url)
+            targetFile.write("\n")
     else:
         with open(file, "w") as targetFile:
             targetFile.write(url)
+            targetFile.write("\n")
     return 1
 
 def removeEntry(url, file):
@@ -193,10 +205,11 @@ def removeEntry(url, file):
 
     with open(file,"w") as targetFile:
         for line in lines:
-            if line.strip("\n") is url:
+            if line.strip("\n") == url:
                 targetExists = True
             else: 
                 targetFile.write(line)
+                targetFile.write("\n")
         if targetExists: return 1
         else: return -1
 
