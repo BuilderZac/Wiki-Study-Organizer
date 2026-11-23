@@ -1,6 +1,6 @@
 import os
 
-def queryAndMakeList():
+def queryAndMakeList(zim_file):
     # Variables that will prob be customizable later
     output_length = 10
     output_page_number = 1
@@ -11,23 +11,80 @@ def queryAndMakeList():
 
     return
 
+def list_menu(zim_file):
+    while True:
+        print(f"\n=== {zim_file.name} ===")
+        print("1. Bookmark/Unbookmark")
+        print("2. Mark as Read/Unread")
+        print("3. Next Page")
+        print("4. Previous Page")
+        print("b. Back")
+
+        choice = input("\nChoose an option: ").strip().lower()
+
+        if choice == "1":
+            choice2 = input("\nPlease provide URL to bookmark: ").strip()
+
+        elif choice == "2":
+            cachePages.createCache()
+        elif choice == "b":
+            return
+        else:
+            print("Invalid option.")
+
 def getReadPages(): # return dict of page urls
     return readEntries("finished.txt")
 
 def getBookmarkedPages(): # return dict of page urls
     return readEntries("bookmarks.txt")
 
-def addRead(page):
-    return addEntry(page, "finished.txt")
+def addRead(url):
+    return addEntry(url, "finished.txt")
 
-def removeRead(page):
-    return removeEntry(page, "finished.txt")
+def removeRead(url):
+    return removeEntry(url, "finished.txt")
 
-def bookmark(page):
-    return addEntry(page, "bookmarks.txt")
+def finishedPage(url):
+    readPages = getReadPages()
+    for page in readPages:
+        if page is url: 
+            if removeRead(url) == 1:
+                print("Successfully removed read marker")
+                return 1
+            else:
+                print("ERROR: removeEntry could not find text")
+                return -1
+    if addRead(url) is 1:
+        print("Successfully added read marker")
+        return 1
+    else:
+        print("ERROR: addEntry detected bookmark!")
+        return -1
+        
+def bookmark(url):
+    bookmarks = getBookmarkedPages()
+    for bookmark in bookmarks:
+        if bookmark is url: 
+            if removeBookmark(url) == 1:
+                print("Successfully removed bookmark")
+                return 1
+            else:
+                print("ERROR: removeEntry could not find text")
+                return -1
+    if addBookmark(url) is 1:
+        print("Successfully added bookmark")
+        return 1
+    else:
+        print("ERROR: addEntry detected bookmark!")
+        return -1
+            
+    
 
-def removeBookmark(page):
-    return removeEntry(page, "bookmarks.txt")
+def addBookmark(url):
+    return addEntry(url, "bookmarks.txt")
+
+def removeBookmark(url):
+    return removeEntry(url, "bookmarks.txt")
 
 def readEntries(file):
     outputDict = dict()
@@ -40,17 +97,17 @@ def readEntries(file):
 
     return outputDict
 
-def addEntry(page, file):
+def addEntry(url, file):
     with open(file, "a") as targetFile:
         lines = targetFile.readlines()
 
         for line in lines:
-            if line.strip("\n") is page.url: return -1
+            if line.strip("\n") is url: return -1
         
-        print(page.url)
+        print(url)
         return 1
 
-def removeEntry(page, file):
+def removeEntry(url, file):
     targetExists = False
 
     with open(file, "r") as targetFile:
@@ -58,7 +115,7 @@ def removeEntry(page, file):
 
     with open(file,"w") as targetFile:
         for line in lines:
-            if line.strip("\n") is page.url:
+            if line.strip("\n") is url:
                 targetExists = True
             else: 
                 targetFile.write(line)
@@ -72,7 +129,9 @@ def rank(cache):
     # Ranks which pages to read while ignoring already read pages
     i = 1
     for x in results:
-        if not readPages.get(x.url):
+        if readPages.get(x.url):
+            results.pop(x)
+        else:
             cache.get(x).rank = i
             i += 1
     
