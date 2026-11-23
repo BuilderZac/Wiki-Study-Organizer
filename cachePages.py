@@ -30,6 +30,17 @@ class Pages:
         self.hash_word_dict = dict()    # word : word_id
 
 
+    def fill_page_references(self) -> bool:
+        for id, page in self.pages.items():
+            for link in page.links:
+                linked_id = self.hash_url.get(link)
+                if linked_id:
+                    linked_page = self.pages.get(linked_id)
+                    if linked_page:
+                        linked_page.references.append(id)
+                        self.pages.update({linked_id:linked_page})
+        return True
+
     # Updates each hash map (for quick searching) and stores a Page object
     def insert(self, url: str, name: str, word_count: dict, links: list) -> bool:
         new_word_count = dict()
@@ -111,7 +122,11 @@ def format_links(links: list[str]) -> list[str]:
         if webpage_url != -1:
             third_slash = link.find("/", webpage_url+4)
             link = link[third_slash:]
-        newLinks.append(link)
+
+        fragment = link.rfind("#")
+        if fragment != -1:
+            link = link[0:fragment]
+        newLinks.append(link.strip())
     return newLinks
 
 # Creates data structure to store relevant data from a .ZIM file
@@ -128,7 +143,9 @@ def createCache(zim_path: Path) -> Pages:
     # Read every HTML page
     for page in zim_file:
         page_content = page.get_item()
-        url = page_content.path
+
+        slash = page_content.path.find("/")
+        url = page_content.path[slash:] if slash != -1 else page_content.path
         name = page_content.title
 
         # Omit non-HTML files
@@ -183,12 +200,7 @@ def createCache(zim_path: Path) -> Pages:
         # when collection is complete, format and pass data on
         text = re.sub(r'[^\w\s]', '', text)
         text = re.sub(r'\n', '', text)
-        pages.insert(url, name, count_words(text), format_links(links))
+        pages.insert(url.strip(), name, count_words(text), format_links(links))
 
+    pages.fill_page_references()
     return pages
-
-
-# For debugging
-def main():
-    file = "library/chessprogramming_sample_2026-11.zim"
-    createCache(Path(file))
