@@ -1,2 +1,2 @@
-libzim
+libzim>=4.1.0
 python-zim
