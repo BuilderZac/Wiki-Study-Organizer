@@ -24,13 +24,24 @@ def list_menu(zim_file):
 
         if choice == "1":
             choice2 = input("\nPlease provide URL to bookmark: ").strip()
-
+            bookmark(choice2)
         elif choice == "2":
-            cachePages.createCache()
+            choice2 = input("\nPlease provide URL to mark as read: ").strip()
+            finishedPage(choice2)
+        elif choice == "3":
+            nextPage()
+        elif choice == "4":
+            prevPage()
         elif choice == "b":
             return
         else:
             print("Invalid option.")
+
+def nextPage():
+    pass
+
+def prevPage():
+    pass
 
 def getReadPages(): # return dict of page urls
     return readEntries("finished.txt")
@@ -60,7 +71,7 @@ def finishedPage(url):
     else:
         print("ERROR: addEntry detected bookmark!")
         return -1
-        
+
 def bookmark(url):
     bookmarks = getBookmarkedPages()
     for bookmark in bookmarks:
