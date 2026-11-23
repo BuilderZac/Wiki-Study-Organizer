@@ -3,6 +3,8 @@ from libzim.reader import Archive
 import hashlib
 import re
 
+CACHE_DIR = Path("/app/cache")
+
 class Page:
     def __init__(self, url, name, word_count, links):
         self.url: str = url
@@ -29,6 +31,7 @@ class Pages:
 
 
     def insert(self, url: str, name: str, word_count: dict, links: list) -> bool:
+        new_word_count = dict()
         for word in word_count:
 
             if not self.hash_word_dict.get(word):
@@ -44,7 +47,9 @@ class Pages:
             word_list.append(self.counter)
             self.hash_word_pages.update({word_id: word_list})
 
-        page = Page(url, name, word_count, links)
+            new_word_count.update({word_id:word_count.get(word)})
+
+        page = Page(url, name, new_word_count, links)
         self.pages.update({self.counter: page})
         self.hash_url.update({url: self.counter})
         self.hash_name.update({name: self.counter})
@@ -66,7 +71,8 @@ class Pages:
 
 
     def getPagesByWord(self, word: str) -> list[Page]:
-        return self.hash_word.get(word)
+        word_id = self.hash_word_dict.get(word)
+        return self.hash_word_pages.get(word_id)
 
 
     def getNearbyPages(self, page: Page) -> list[Page]:
@@ -109,10 +115,8 @@ def createCache(zim_path: Path) -> Pages:
         digest = hashlib.file_digest(f, "sha256")
     cache_id = digest.hexdigest()[0:20]
 
-    cache_dir = Path(""+cache_id)
-
-    if cache_dir.is_file():
-        return readCache(cache_dir)
+    if False: #Path(str(CACHE_DIR)+"/"+cache_id).is_file():
+        return readCache(CACHE_DIR, cache_id)
     
     else:
         zim_file = Archive(zim_path)
@@ -124,10 +128,10 @@ def createCache(zim_path: Path) -> Pages:
             url = page_content.path
             name = page_content.title
 
-            if page_content.mimetype != "text/html":
+            if page_content.mimetype not in ("text/html", "text/plain", "text/plain;charset=UTF-8"):
                 continue
             else:
-                page_content = bytes(page_content.content).decode("utf-8")
+                page_content = bytes(page_content.content).decode("utf-8", errors="replace")
 
             # Variables for storing extracted data
             text: str = ""
@@ -171,19 +175,27 @@ def createCache(zim_path: Path) -> Pages:
             text = re.sub(r'[^\w\s]', '', text)
             text = re.sub(r'\n', '', text)
             pages.insert(url, name, count_words(text), format_links(links))
-        writeCache()
+
+        #writeCache(pages, CACHE_DIR, cache_id)
     return pages
 
 
-def writeCache():
-    pass
+def writeCache(pages: Pages, cache_path: Path, cache_id: str) -> bool:
+    print("HI")
+    with Path(str(CACHE_DIR)+"/"+cache_id).open("w", encoding="utf-8") as file:
+        print("ok")
+        for page in pages.pages:
+            attributes = page.keys
+            print(attributes)
+            for a in attributes:
+                value = attributes.get(a)
+                file.write("Hello, world!\n")
 
 
-def readCache(cache_path: Path) -> Pages:
+def readCache(cache_path: Path, cache_id: str) -> Pages:
     pass
 
 
 def main():
-    file = "library/finiki_en_all_maxi_2024-06.zim"
+    file = "library/chessprogramming_sample_2026-11.zim"
     createCache(Path(file))
-
