@@ -1,12 +1,14 @@
 import os
+import cachePages
+from pathlib import Path
 
 def queryAndMakeList(zim_file):
     # Variables that will prob be customizable later
     output_length = 10
 
     # List setup
-    cache = createCache()
-    orderedKeys = rank(cache.keys())
+    cache = cachePages.createCache(Path("library/" + zim_file.name))
+    orderedKeys = rank(cache.pages)
 
     list_menu(zim_file, orderedKeys, output_length)
     return
@@ -19,13 +21,16 @@ def list_menu(zim_file, orderedKeys, output_length):
         print(f"\n=== {zim_file.name} ===")
         print("1. Bookmark/Unbookmark")
         print("2. Mark as Read/Unread")
-        print("3. Next Page")
-        print("4. Previous Page")
+        print("3. Previous Page")
+        print("4. Next Page")
         print("b. Back")
+        print()
+        print("Pages to Read:")
 
         for n in range(min(len(orderedKeys) - (output_length*(pageNum-1)), output_length)):
-            print(f"{n}. {orderedKeys[(output_length*(pageNum-1)) + n]}")
-        print(f"=== {pageNum}/{maxPages} ===")
+            currentPage = orderedKeys[(output_length*(pageNum-1)) + n]
+            print(f"{n+1+(output_length*(pageNum-1))}. {currentPage.name} -- {currentPage.url}")
+        print(f"====== {pageNum}/{maxPages} ======")
 
         choice = input("\nChoose an option: ").strip().lower()
 
@@ -36,15 +41,15 @@ def list_menu(zim_file, orderedKeys, output_length):
             choice2 = input("\nPlease provide URL to mark as read: ").strip()
             finishedPage(choice2)
         elif choice == "3":
+            if pageNum == 1:
+                print("No previous page.")
+            else:
+                pageNum -= 1            
+        elif choice == "4":
             if pageNum == maxPages:
                 print("No next page.")
             else:
                 pageNum += 1
-        elif choice == "4":
-            if pageNum == 1:
-                print("No previous page.")
-            else:
-                pageNum -= 1
         elif choice == "b":
             return
         else:
@@ -72,7 +77,7 @@ def finishedPage(url):
             else:
                 print("ERROR: removeEntry could not find text")
                 return -1
-    if addRead(url) is 1:
+    if addRead(url) == 1:
         print("Successfully added read marker")
         return 1
     else:
@@ -89,7 +94,7 @@ def bookmark(url):
             else:
                 print("ERROR: removeEntry could not find text")
                 return -1
-    if addBookmark(url) is 1:
+    if addBookmark(url) == 1:
         print("Successfully added bookmark")
         return 1
     else:
@@ -107,6 +112,8 @@ def removeBookmark(url):
 def readEntries(file):
     outputDict = dict()
     
+    if not os.path.exists(file): return outputDict
+
     with open(file,"r") as targetFile:
         lines = targetFile.readlines()
     
@@ -116,17 +123,22 @@ def readEntries(file):
     return outputDict
 
 def addEntry(url, file):
-    with open(file, "a") as targetFile:
-        lines = targetFile.readlines()
+    if os.path.exists(file):
+        with open(file, "a") as targetFile:
+            lines = targetFile.readlines()
 
-        for line in lines:
-            if line.strip("\n") is url: return -1
-        
+            for line in lines:
+                if line.strip("\n") is url: return -1
         print(url)
-        return 1
+    else:
+        with open(file, "w") as targetFile:
+            print(url)
+    return 1
 
 def removeEntry(url, file):
     targetExists = False
+
+    if not os.path.exists(file): return -1
 
     with open(file, "r") as targetFile:
         lines = targetFile.readlines()
@@ -141,7 +153,11 @@ def removeEntry(url, file):
         else: return -1
 
 def rank(cache):
-    results = sorted(cache.values(), key=lambda x: cache.get(x).ref_count, reverse=True)
+    for x in cache.keys():
+        print(x, cache.get(x))
+    tempResults = sorted(cache.keys(), key=lambda x: cache.get(x).ref_count, reverse=True)
+    results = []
+    for x in tempResults: results.append(cache.get(x))
     readPages = getReadPages()
 
     # Ranks which pages to read while ignoring already read pages
@@ -150,7 +166,7 @@ def rank(cache):
         if readPages.get(x.url):
             results.pop(x)
         else:
-            cache.get(x).rank = i
+            x.rank = i
             i += 1
     
     print(results) #TODO: remove, used for debug
